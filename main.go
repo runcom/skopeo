@@ -23,13 +23,21 @@ var inspectCommand = cli.Command{
 		if err != nil {
 			logrus.Fatal(err)
 		}
-		out, err := json.Marshal(imgInspect)
-		if err != nil {
-			logrus.Fatal(err)
+		if context.Bool("raw") {
+			fmt.Println(string(imgInspect.RawManifest))
+		} else {
+			out, err := json.Marshal(imgInspect)
+			if err != nil {
+				logrus.Fatal(err)
+			}
+			fmt.Println(string(out))
 		}
-		fmt.Println(string(out))
 	},
 	Flags: 	[]cli.Flag{
+		cli.BoolFlag{
+			Name:  "raw",
+			Usage: "raw manifest",
+		},
 		cli.StringFlag{
 			Name:  "username",
 			Value: "",
