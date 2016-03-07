@@ -15,28 +15,21 @@ const (
 	usage   = "inspect images on a registry"
 )
 
-var inspectCmd = func(c *cli.Context) {
-	imgInspect, err := inspect(c)
-	if err != nil {
-		logrus.Fatal(err)
-	}
-	out, err := json.Marshal(imgInspect)
-	if err != nil {
-		logrus.Fatal(err)
-	}
-	fmt.Println(string(out))
-}
-
-func main() {
-	app := cli.NewApp()
-	app.Name = "skopeo"
-	app.Version = version
-	app.Usage = usage
-	app.Flags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  "debug",
-			Usage: "enable debug output",
-		},
+var inspectCommand = cli.Command{
+	Name:      "inspect",
+	Usage:     "",
+	Action: func(context *cli.Context) {
+		imgInspect, err := inspect(context)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		out, err := json.Marshal(imgInspect)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		fmt.Println(string(out))
+	},
+	Flags: 	[]cli.Flag{
 		cli.StringFlag{
 			Name:  "username",
 			Value: "",
@@ -52,6 +45,20 @@ func main() {
 			Value: cliconfig.ConfigDir(),
 			Usage: "Docker's cli config for auth",
 		},
+	},
+
+}
+
+func main() {
+	app := cli.NewApp()
+	app.Name = "skopeo"
+	app.Version = version
+	app.Usage = usage
+	app.Flags = []cli.Flag{
+		cli.BoolFlag{
+			Name:  "debug",
+			Usage: "enable debug output",
+		},
 	}
 	app.Before = func(c *cli.Context) error {
 		if c.GlobalBool("debug") {
@@ -59,7 +66,9 @@ func main() {
 		}
 		return nil
 	}
-	app.Action = inspectCmd
+	app.Commands = []cli.Command{
+		inspectCommand,
+	}
 	if err := app.Run(os.Args); err != nil {
 		logrus.Fatal(err)
 	}
