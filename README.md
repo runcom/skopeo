@@ -1,3 +1,5 @@
+THE PROJECT HAS BEEN MOVED TO [projectatomic/skopeo](https://github.com/projectatomic/skopeo)
+=
 skopeo [![Build Status](https://travis-ci.org/runcom/skopeo.svg?branch=master)](https://travis-ci.org/runcom/skopeo)
 =
 
