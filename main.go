@@ -15,27 +15,28 @@ const (
 	usage   = "inspect images on a registry"
 )
 
-var inspectCmd = func(c *cli.Context) {
-	imgInspect, err := inspect(c)
-	if err != nil {
-		logrus.Fatal(err)
-	}
-	out, err := json.Marshal(imgInspect)
-	if err != nil {
-		logrus.Fatal(err)
-	}
-	fmt.Println(string(out))
-}
-
-func main() {
-	app := cli.NewApp()
-	app.Name = "skopeo"
-	app.Version = version
-	app.Usage = usage
-	app.Flags = []cli.Flag{
+var inspectCommand = cli.Command{
+	Name:      "inspect",
+	Usage:     "",
+	Action: func(context *cli.Context) {
+		imgInspect, err := inspect(context)
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		if context.Bool("raw") {
+			fmt.Println(string(imgInspect.RawManifest))
+		} else {
+			out, err := json.Marshal(imgInspect)
+			if err != nil {
+				logrus.Fatal(err)
+			}
+			fmt.Println(string(out))
+		}
+	},
+	Flags: 	[]cli.Flag{
 		cli.BoolFlag{
-			Name:  "debug",
-			Usage: "enable debug output",
+			Name:  "raw",
+			Usage: "raw manifest",
 		},
 		cli.StringFlag{
 			Name:  "username",
@@ -52,6 +53,49 @@ func main() {
 			Value: cliconfig.ConfigDir(),
 			Usage: "Docker's cli config for auth",
 		},
+	},
+
+}
+
+type Kind int
+
+const (
+	KindUnknown Kind = iota
+	KindDocker
+	KindAppc
+)
+
+type Image interface {
+	Kind() Kind
+	GetLayers(layers []string) error
+	GetRawManifest(version string) ([]byte, error)
+}
+
+// TODO(runcom): document args and usage
+var layersCommand = cli.Command{
+	Name:      "layers",
+	Usage:     "",
+	Action: func(context *cli.Context) {
+		img, err := parseImage(context.Args().First())
+		if err != nil {
+			logrus.Fatal(err)
+		}
+		if err := img.GetLayers(context.Args().Tail()); err != nil {
+			logrus.Fatal(err)
+		}
+	},
+}
+
+func main() {
+	app := cli.NewApp()
+	app.Name = "skopeo"
+	app.Version = version
+	app.Usage = usage
+	app.Flags = []cli.Flag{
+		cli.BoolFlag{
+			Name:  "debug",
+			Usage: "enable debug output",
+		},
 	}
 	app.Before = func(c *cli.Context) error {
 		if c.GlobalBool("debug") {
@@ -59,7 +103,10 @@ func main() {
 		}
 		return nil
 	}
-	app.Action = inspectCmd
+	app.Commands = []cli.Command{
+		inspectCommand,
+		layersCommand,
+	}
 	if err := app.Run(os.Args); err != nil {
 		logrus.Fatal(err)
 	}
